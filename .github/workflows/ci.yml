@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  powershell:
+    name: PowerShell ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Pester and PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+          Install-Module Pester -MinimumVersion 5.0.0 -Scope CurrentUser -Force -SkipPublisherCheck
+          Install-Module PSScriptAnalyzer -Scope CurrentUser -Force -SkipPublisherCheck
+
+      - name: Test module manifest
+        shell: pwsh
+        run: Test-ModuleManifest -Path ./ExchangeMailboxToolkit/ExchangeMailboxToolkit.psd1
+
+      - name: PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          $results = Invoke-ScriptAnalyzer -Path ./src, ./ExchangeMailboxToolkit, ./examples -Settings ./PSScriptAnalyzerSettings.psd1 -Recurse
+          $results | Format-Table -AutoSize
+          $errors = $results | Where-Object { $_.Severity -eq 'Error' }
+          if ($errors) { throw "$($errors.Count) PSScriptAnalyzer error(s) found." }
+
+      - name: Pester tests
+        shell: pwsh
+        run: |
+          $config = New-PesterConfiguration
+          $config.Run.Path = './tests'
+          $config.Output.Verbosity = 'Detailed'
+          Invoke-Pester -Configuration $config

@@ -1,0 +1,31 @@
+# Data and logs (CRITICAL: Do not track exports or logs)
+/data/
+/logs/
+
+# Common artifacts
+*.log
+*.csv
+*.json
+*.pst
+*.bak
+*.tmp
+*.temp
+Thumbs.db
+.DS_Store
+
+# IDE / Editor settings
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Local secret / environment files
+.env
+*.secret.ps1
+config.local.ps1
+
+# PowerShell specific
+# (Keep source .psd1/.psm1 if you create modules, but ignore local checkouts)
+# *.psd1
+# *.psm1
+
