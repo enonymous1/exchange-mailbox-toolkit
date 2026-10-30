@@ -68,6 +68,21 @@ Export shared calendar events to CSV format.
 ### Export-Mailbox-Timezones.ps1
 Export mailbox timezone configurations.
 
+### Export-DistributionGroupMembers.ps1
+Export distribution-group membership to CSV (`GroupName`, `GroupEmail`, `MemberName`, `MemberEmail`), with `-ResultSize Unlimited` paging. Empty groups produce one blank-member row unless `-ExcludeEmptyGroups` is given. Scope to one group first with `-GroupIdentity`.
+
+```powershell
+pwsh -File src/Exchange/Export-DistributionGroupMembers.ps1 -GroupIdentity 'all-staff@contoso.com'
+pwsh -File src/Exchange/Export-DistributionGroupMembers.ps1 -OutputPath 'data/output/groups.csv'
+```
+
+### Test-GraphUserAccess.ps1
+Check whether the signed-in account can read a user through Graph, returning `UserPrincipalName`, `DisplayName`, `CanRead`, and `Error`. This is a read-access check, not impersonation — it does not act as the user.
+
+```powershell
+pwsh -File src/Exchange/Test-GraphUserAccess.ps1 -UserPrincipalName 'user@contoso.com'
+```
+
 ### Get-Mailboxes.ps1 / Get-GraphMailboxes.ps1
 Retrieve and list mailbox information.
 

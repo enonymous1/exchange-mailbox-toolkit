@@ -12,7 +12,7 @@
 RootModule = 'ExchangeMailboxToolkit.psm1'
 
 # Version number of this module.
-ModuleVersion = '2.0.0'
+ModuleVersion = '2.1.0'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -31,7 +31,7 @@ CompanyName = 'Unknown'
 Copyright = '(c) 2026 enonymous1'
 
 # Description of the functionality provided by this module
-Description = 'Exchange Online / Microsoft Graph mailbox administration: folder-structure enforcement, mailbox and calendar exports, and message moves, with retry and audit logging.'
+Description = 'Exchange Online / Microsoft Graph mailbox administration: folder-structure enforcement, mailbox and calendar exports, distribution-group membership exports, a Graph user-access check, and message moves, with retry and audit logging.'
 
 # Minimum version of the PowerShell engine required by this module
 PowerShellVersion = '7.2'
@@ -118,7 +118,7 @@ PrivateData = @{
         # IconUri = ''
 
         # ReleaseNotes of this module
-        ReleaseNotes = '2.0.0: proper module manifest, fixed Connect-ExchangeEnvironment loader, cross-platform paths, non-interactive Check_For_Messages and Ensure gates, ShouldProcess on destructive operations, implemented Export-Mailbox-Timezones, Pester and PSScriptAnalyzer CI.'
+        ReleaseNotes = '2.1.0: folded in mp-powershell as Export-DistributionGroupMembers and Test-GraphUserAccess (impersonation claim corrected), with mocked Pester coverage. 2.0.0: proper module manifest, fixed Connect-ExchangeEnvironment loader, cross-platform paths, non-interactive Check_For_Messages and Ensure gates, ShouldProcess on destructive operations, implemented Export-Mailbox-Timezones, Pester and PSScriptAnalyzer CI.'
 
         # Prerelease string of this module
         # Prerelease = ''

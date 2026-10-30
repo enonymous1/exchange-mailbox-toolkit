@@ -29,7 +29,11 @@ jobs:
       - name: PSScriptAnalyzer
         shell: pwsh
         run: |
-          $results = Invoke-ScriptAnalyzer -Path ./src, ./ExchangeMailboxToolkit, ./examples -Settings ./PSScriptAnalyzerSettings.psd1 -Recurse
+          # Invoke-ScriptAnalyzer -Path takes a single path (PSScriptAnalyzer 1.25:
+          # passing several paths fails with a type-conversion error), so loop.
+          $results = foreach ($path in './src', './ExchangeMailboxToolkit', './examples') {
+            Invoke-ScriptAnalyzer -Path $path -Settings ./PSScriptAnalyzerSettings.psd1 -Recurse
+          }
           $results | Format-Table -AutoSize
           $errors = $results | Where-Object { $_.Severity -eq 'Error' }
           if ($errors) { throw "$($errors.Count) PSScriptAnalyzer error(s) found." }

@@ -4,10 +4,10 @@ BeforeAll {
 }
 
 Describe 'Module manifest' {
-    It 'Has a valid manifest for ExchangeMailboxToolkit 2.0.0 on PowerShell 7.2' {
+    It 'Has a valid manifest for ExchangeMailboxToolkit 2.1.0 on PowerShell 7.2' {
         $manifest = Test-ModuleManifest -Path (Join-Path $repoRoot 'ExchangeMailboxToolkit' 'ExchangeMailboxToolkit.psd1')
         $manifest.Name | Should -Be 'ExchangeMailboxToolkit'
-        $manifest.Version.ToString() | Should -Be '2.0.0'
+        $manifest.Version.ToString() | Should -Be '2.1.0'
         $manifest.PowerShellVersion.ToString() | Should -Be '7.2'
     }
 
@@ -121,5 +121,105 @@ Describe 'Examples use only fictional addresses' {
         foreach ($address in $addresses) {
             $address | Should -Match '@(contoso\.com|domain\.com|example\.com)$' -Because "example address $address must use a fictional domain"
         }
+    }
+}
+
+Describe 'mp-powershell fold-in (2.1.0)' {
+    It 'Export-DistributionGroupMembers uses unlimited paging, not a hard-coded path or a += loop' {
+        $path = Join-Path $repoRoot 'src' 'Exchange' 'Export-DistributionGroupMembers.ps1'
+        Test-Path $path | Should -BeTrue
+        $content = Get-Content $path -Raw
+        $content | Should -Match 'ResultSize Unlimited'
+        $content | Should -Not -Match 'C:\\distribution'
+        $content | Should -Not -Match '\$results \+= \$result'
+        $content | Should -Match 'List\[PSCustomObject\]'
+        $content | Should -Match 'Connect-ExchangeEnvironment.*-LoadExchange'
+    }
+
+    It 'Test-GraphUserAccess corrects the impersonation claim and drops the unused Exchange connection' {
+        $path = Join-Path $repoRoot 'src' 'Exchange' 'Test-GraphUserAccess.ps1'
+        Test-Path $path | Should -BeTrue
+        $content = Get-Content $path -Raw
+        $content | Should -Match 'not an\s+impersonation'
+        $content | Should -Not -Match 'Impersonation successful'
+        # The help text mentions the original's calls by name; check the
+        # code after the help block, not the prose, for what it actually does.
+        $code = $content.Substring($content.IndexOf('#>') + 2)
+        $code | Should -Not -Match 'Connect-ExchangeOnline'
+        $code | Should -Match 'User\.Read\.All'
+        $code | Should -Not -Match 'Group\.Read\.All'
+        $code | Should -Not -Match 'millenniumpartners'
+    }
+
+    It 'Export-DistributionGroupMembers exports members and one blank row for an empty group (mocked EXO)' {
+        . (Join-Path $repoRoot 'src' 'Exchange' 'Export-DistributionGroupMembers.ps1')
+        function Connect-ExchangeEnvironment {
+            [CmdletBinding()]
+            param([switch]$LoadExchange)
+            return [PSCustomObject]@{
+                Graph    = [PSCustomObject]@{ Connected = $false; Message = $null }
+                Exchange = [PSCustomObject]@{ Connected = $true; Message = $null }
+            }
+        }
+        function Get-DistributionGroup {
+            [CmdletBinding()]
+            param([string]$Identity, [string]$ResultSize)
+            return @(
+                [PSCustomObject]@{ Identity = 'group-a'; DisplayName = 'All Staff'; PrimarySmtpAddress = 'all-staff@contoso.com' },
+                [PSCustomObject]@{ Identity = 'group-b'; DisplayName = 'Empty Group'; PrimarySmtpAddress = 'empty@contoso.com' }
+            )
+        }
+        function Get-DistributionGroupMember {
+            [CmdletBinding()]
+            param([string]$Identity, [string]$ResultSize)
+            if ($Identity -eq 'group-a') {
+                return @(
+                    [PSCustomObject]@{ DisplayName = 'Ada'; PrimarySmtpAddress = 'ada@contoso.com' },
+                    [PSCustomObject]@{ DisplayName = 'Ben'; PrimarySmtpAddress = 'ben@contoso.com' }
+                )
+            }
+            return @()
+        }
+        $out = Join-Path $TestDrive 'groups.csv'
+        Export-DistributionGroupMembers -OutputPath $out | Out-Null
+        $rows = Import-Csv $out
+        $rows.Count | Should -Be 3
+        ($rows | Where-Object { $_.MemberEmail -eq 'ada@contoso.com' }).GroupName | Should -Be 'All Staff'
+        $emptyRow = $rows | Where-Object { $_.GroupName -eq 'Empty Group' }
+        $emptyRow.Count | Should -Be 1
+        $emptyRow.MemberEmail | Should -BeNullOrEmpty
+
+        $outFiltered = Join-Path $TestDrive 'groups-filtered.csv'
+        Export-DistributionGroupMembers -OutputPath $outFiltered -ExcludeEmptyGroups | Out-Null
+        (Import-Csv $outFiltered).Count | Should -Be 2
+    }
+
+    It 'Test-GraphUserAccess returns CanRead for a readable user and for a failure (mocked Graph)' {
+        . (Join-Path $repoRoot 'src' 'Exchange' 'Test-GraphUserAccess.ps1')
+        function Connect-ExchangeEnvironment {
+            [CmdletBinding()]
+            param([string[]]$GraphScopes)
+            return [PSCustomObject]@{
+                Graph    = [PSCustomObject]@{ Connected = $true; Message = $null }
+                Exchange = [PSCustomObject]@{ Connected = $false; Message = $null }
+            }
+        }
+        function Get-MgUser {
+            [CmdletBinding()]
+            param([string]$UserId)
+            return [PSCustomObject]@{ DisplayName = 'Ada Lovelace'; UserPrincipalName = 'ada@contoso.com' }
+        }
+        $ok = Test-GraphUserAccess -UserPrincipalName 'ada@contoso.com'
+        $ok.CanRead | Should -BeTrue
+        $ok.DisplayName | Should -Be 'Ada Lovelace'
+
+        function Get-MgUser {
+            [CmdletBinding()]
+            param([string]$UserId)
+            throw 'Not found'
+        }
+        $bad = Test-GraphUserAccess -UserPrincipalName 'nobody@contoso.com' -WarningAction SilentlyContinue
+        $bad.CanRead | Should -BeFalse
+        $bad.Error | Should -Not -BeNullOrEmpty
     }
 }

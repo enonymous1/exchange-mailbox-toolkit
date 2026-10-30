@@ -2,14 +2,15 @@
 
 PowerShell 7.2+ tools for Exchange Online / Microsoft 365 mailbox administration: enforce a mailbox folder structure, export mailboxes, calendars and messages, verify folder structures, and move messages between folders, with Graph retry logic and audit logging.
 
-This is v2.0.0, a modernization of a working toolkit that grew script by script. The Graph logic is unchanged in intent; what changed is how it is packaged, loaded, tested, and gated before anything destructive runs.
+This is v2.1.0, a modernization of a working toolkit that grew script by script. The Graph logic is unchanged in intent; what changed is how it is packaged, loaded, tested, and gated before anything destructive runs. v2.1.0 folds in two scripts from mp-powershell: distribution-group membership export and a Graph user-access check (whose original "impersonation" claim was corrected — see the CHANGELOG).
 
 Formerly named `mp-workingDir` / `MPWorkingDir`, with `MP`-prefixed function names. The repo, module, and function names were generalized before the first public push; scripts calling the old names need updating — see the mapping in the CHANGELOG. The one exception is `Get-Mailboxes`, kept as a deprecated shim that forwards to `Get-GraphMailboxes`.
 
 ## What it does
 
 - **Folder structure** — `Ensure_Directory_Structure.ps1` exports a mailbox's folder hierarchy, creates folders from a specification file, and removes folders not in the specification after moving their messages to Inbox. System folders (Inbox, Sent Items, etc.) are protected.
-- **Exports** — mailboxes (`Export-Mailboxes.ps1`), shared calendars (`Export-SharedCalendar.ps1`), mailbox messages and attachments (`Export-MailboxMessages.ps1`), and mailbox time zones / regional settings (`Export-Mailbox-Timezones.ps1`).
+- **Exports** — mailboxes (`Export-Mailboxes.ps1`), shared calendars (`Export-SharedCalendar.ps1`), mailbox messages and attachments (`Export-MailboxMessages.ps1`), mailbox time zones / regional settings (`Export-Mailbox-Timezones.ps1`), and distribution-group membership (`Export-DistributionGroupMembers.ps1`).
+- **Access check** — `Test-GraphUserAccess.ps1` checks whether the signed-in account can read a user through Graph. It is a read-access check, not impersonation: it does not act as the user.
 - **Inspection and repair** — `Inspect-MailboxFolders.ps1`, `Verify-Mailbox-Folder-Structure.ps1`, `Check_For_Messages.ps1`, and `Get-GraphMailboxes.ps1` (shared/user/all, internal/external filtering).
 - **Moves** — `Import-MoveMessages.ps1` moves messages from a CSV map, and `Sort-Inbox.ps1` is an interactive per-message sorter.
 - **Filesystem** — `FileList_Generator.ps1` inventories a directory tree to CSV.
@@ -40,7 +41,7 @@ pwsh -File src/Filesystem/FileList_Generator.ps1 -Path ./src -OutputFile data/ou
 
 ```text
 exchange-mailbox-toolkit/
-├── ExchangeMailboxToolkit/          # Module: ExchangeMailboxToolkit.psd1 / .psm1 (v2.0.0)
+├── ExchangeMailboxToolkit/          # Module: ExchangeMailboxToolkit.psd1 / .psm1 (v2.1.0)
 ├── src/
 │   ├── Exchange/          # Exchange Online / Graph scripts
 │   ├── Filesystem/        # Local filesystem utilities
@@ -80,7 +81,7 @@ See `CHANGELOG.md` for the full list.
 
 MIT License, copyright 2026 enonymous1. See `LICENSE`.
 
-This is the public export of v2.0.0: the same code as the internal modernization, with a single squashed commit under the `enonymous1` identity and no remote set. The original history is intentionally not included. All examples use fictional addresses, and no tenant data, logs, or exports are included. Before pushing, check `enonymous1/exchange-mailbox-toolkit` on GitHub first: if a repo with that name already exists with content, stop before pushing — this export is meant for an empty repo, not as a replacement for existing history.
+This is the public export: the v2.0.0 squashed commit plus the v2.1.0 mp-powershell fold-in, both under the `enonymous1` identity and with no remote set. The original histories are intentionally not included. All examples use fictional addresses, and no tenant data, logs, or exports are included. Before pushing, check `enonymous1/exchange-mailbox-toolkit` on GitHub first: if it already holds the v2.0.0 export, this is a normal fast-forward push; if it holds anything else, stop before pushing — this export is not a replacement for existing history.
 
 ---
 *Maintained by the automation team.*

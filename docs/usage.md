@@ -31,6 +31,12 @@ pwsh -File src/Exchange/Export-Mailboxes.ps1 -MailboxType User -InternalOnly -Wh
 
 # Limit the sample size while testing
 pwsh -File src/Exchange/Export-Mailboxes.ps1 -MailboxType Shared -Max 5 -WhatIf -ConfirmRun
+
+# Distribution-group membership (read-only; scope to one group first)
+pwsh -File src/Exchange/Export-DistributionGroupMembers.ps1 -GroupIdentity 'all-staff@contoso.com'
+
+# Graph user-access check (read-only; this is NOT impersonation)
+pwsh -File src/Exchange/Test-GraphUserAccess.ps1 -UserPrincipalName 'user@contoso.com'
 ```
 Keep sensitive information (credentials, tokens) out of the repo — use environment variables or a secrets store.
 

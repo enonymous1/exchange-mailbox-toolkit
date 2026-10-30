@@ -1,5 +1,26 @@
 # Changelog - exchange-mailbox-toolkit Improvements
 
+## [2.1.0] - 2026-10-30 — Fold-in from mp-powershell
+
+Two scripts from the 2-script mp-powershell project (Jan 2025), rebuilt to this toolkit's conventions. Neither is exported from the module; both run as standalone scripts under `src/Exchange/`, like `Export-Mailbox-Timezones.ps1`.
+
+### Added
+- `Export-DistributionGroupMembers.ps1` (from "Get Distribution Group + Members.ps1"): exports distribution-group membership to CSV with the original columns (`GroupName`, `GroupEmail`, `MemberName`, `MemberEmail`). Connects via `Connect-ExchangeEnvironment -LoadExchange`; `-GroupIdentity` scopes to one group; `-OutputPath` replaces the original hard-coded `C:\distribution_group_members.csv`; `-ResultSize Unlimited` on both enumerations; a `List[PSCustomObject]` instead of `$results +=`; empty groups produce one blank-member row by default (`-ExcludeEmptyGroups` opts out); a per-group try/catch warns and continues instead of aborting the tenant export.
+- `Test-GraphUserAccess.ps1` (from "User Impersonation.ps1"): returns a result object (`UserPrincipalName`, `DisplayName`, `CanRead`, `Error`) for whether the signed-in account can read a user through Graph. Only `User.Read.All` is requested.
+
+### Corrected
+- The mp-powershell script was titled impersonation, but `Connect-MgGraph` + `Get-MgUser` never impersonates: it only proves the signed-in account can read that user. The fold-in is renamed to say what it does, and its help states plainly that it is not an impersonation test (true application impersonation is governed by RBAC for Applications / Application Access Policies). It also drops the original's unused `Connect-ExchangeOnline` session and its unused `Group.Read.All` scope, replaces the hard-coded placeholder address with a mandatory `-UserPrincipalName` parameter, and replaces `Write-Host` / `Format-List` output with a pipeable object. A failed read returns `CanRead = $false` with the error instead of crashing the script.
+- Sanitization: the original's placeholder employer-domain address is gone; all examples use `contoso.com`. No mp-powershell history is included: that history is under personal Gmail identities, so this fold-in is a fresh commit under `enonymous1`, not a merge of the old repo.
+
+### Tests
+- Pester coverage for the fold-in, mocked so no tenant is needed: the distribution export (members plus the blank empty-group row, and the `-ExcludeEmptyGroups` variant) and the access check (readable user and failed read), plus static checks for unlimited paging, no hard-coded path, no `+=` loop, no "Impersonation successful" text, and no unused Exchange connection. The manifest test now expects 2.1.0.
+
+### Fixed
+- CI's PSScriptAnalyzer step passed several paths to `Invoke-ScriptAnalyzer -Path` at once, which PSScriptAnalyzer 1.25 rejects (the parameter takes a single path). CI now loops over `./src`, `./ExchangeMailboxToolkit`, and `./examples`. This was latent — CI had not run before this fold-in — and was caught while verifying the new scripts here.
+
+### Not verified here
+- Live Exchange Online / Graph behaviour: no tenant access on the build box. Verified here, with `pwsh` 7.4.6 installed locally for this run: PowerShell parser clean for all 22 scripts, module manifest 2.1.0 valid, module imports, Pester 18/18, PSScriptAnalyzer 0 errors under the CI settings. The live gate is a real tenant run scoped to one group / one user first, and the CI run after push (Windows + Ubuntu `pwsh`: manifest, PSScriptAnalyzer, Pester).
+
 ## Function-name generalization - 2026-10-27
 
 The `MP`-prefixed function names described what the toolkit was written for, not what the functions do. Generalized before the first public push, when a rename is still free. No aliases for the old names are kept; scripts calling them need updating.
